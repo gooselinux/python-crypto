@@ -1,0 +1,271 @@
+diff -up pycrypto-2.0.1/Cipher/__init__.py.hobble pycrypto-2.0.1/Cipher/__init__.py
+--- pycrypto-2.0.1/Cipher/__init__.py.hobble	2003-02-28 10:28:35.000000000 -0500
++++ pycrypto-2.0.1/Cipher/__init__.py	2010-09-21 16:40:45.039804088 -0400
+@@ -18,13 +18,11 @@ Crypto.Cipher.CAST
+ Crypto.Cipher.DES         The Data Encryption Standard.  Very commonly used
+                           in the past, but today its 56-bit keys are too small.
+ Crypto.Cipher.DES3        Triple DES.
+-Crypto.Cipher.IDEA
+-Crypto.Cipher.RC5
+ Crypto.Cipher.XOR         The simple XOR cipher.
+ """
+ 
+ __all__ = ['AES', 'ARC2', 'ARC4',
+-           'Blowfish', 'CAST', 'DES', 'DES3', 'IDEA', 'RC5',
++           'Blowfish', 'CAST', 'DES', 'DES3',
+            'XOR'
+            ]
+ 
+diff -up pycrypto-2.0.1/Doc/pycrypt.tex.hobble pycrypto-2.0.1/Doc/pycrypt.tex
+--- pycrypto-2.0.1/Doc/pycrypt.tex.hobble	2005-06-13 20:23:11.000000000 -0400
++++ pycrypto-2.0.1/Doc/pycrypt.tex	2010-09-21 16:40:45.040804212 -0400
+@@ -303,8 +303,6 @@ and are in the \code{Crypto.Cipher} pack
+ \lineii{CAST}{Variable/8 bytes}
+ \lineii{DES}{8 bytes/8 bytes}
+ \lineii{DES3 (Triple DES)}{16 bytes/8 bytes}
+-\lineii{IDEA}{16 bytes/8 bytes}
+-\lineii{RC5}{Variable/8 bytes}
+ \end{tableii}
+ 
+ In a strict formal sense, \dfn{stream ciphers} encrypt data bit-by-bit;
+@@ -414,29 +412,6 @@ the ciphertext.
+ \end{methoddesc}
+ 
+ 
+-\subsection{Algorithm-specific Notes for Encryption Algorithms}
+-
+-RC5 has a bunch of parameters; see Ronald Rivest's paper at
+-\url{http://theory.lcs.mit.edu/~rivest/rc5rev.ps} for the
+-implementation details.  The keyword parameters are:
+-
+-\begin{itemize}
+-\item \code{version}:
+-The version
+-of the RC5 algorithm to use; currently the only legal value is
+-\code{0x10} for RC5 1.0.  
+-\item \code{wordsize}:
+-The word size to use;
+-16 or 32 are the only legal values.  (A larger word size is better, so
+-usually 32 will be used.  16-bit RC5 is probably only of academic
+-interest.)  
+-\item \code{rounds}:
+-The number of rounds to apply, the larger the more secure: this
+-can be any value from 0 to 255, so you will have to choose a value
+-balanced between speed and security. 
+-\end{itemize}
+-
+-
+ \subsection{Security Notes}
+ Encryption algorithms can be broken in several ways.  If you have some
+ ciphertext and know (or can guess) the corresponding plaintext, you can
+@@ -478,9 +453,7 @@ previous implementation by Bruce Schneie
+ algorithm; the Blowfish algorithm has been placed in the public domain
+ and can be used freely.  (See \url{http://www.counterpane.com} for more
+ information about Blowfish.)  The CAST implementation was written by 
+-Wim Lewis.  The DES implementation was written by Eric Young, and the
+-IDEA implementation by Colin Plumb. The RC5 implementation
+-was written by A.M. Kuchling.
++Wim Lewis.  The DES implementation was written by Eric Young.
+ 
+ The Alleged RC4 code was posted to the \code{sci.crypt} newsgroup by an
+ unknown party, and re-implemented by A.M. Kuchling.  
+diff -up pycrypto-2.0.1/MANIFEST.hobble pycrypto-2.0.1/MANIFEST
+--- pycrypto-2.0.1/MANIFEST.hobble	2005-06-13 20:14:50.000000000 -0400
++++ pycrypto-2.0.1/MANIFEST	2010-09-21 16:40:45.040804212 -0400
+@@ -35,10 +35,8 @@ src/Blowfish.c
+ src/CAST.c
+ src/DES.c
+ src/DES3.c
+-src/IDEA.c
+ src/MD2.c
+ src/MD4.c
+-src/RC5.c
+ src/RIPEMD.c
+ src/SHA256.c
+ src/XOR.c
+diff -up pycrypto-2.0.1/README.hobble pycrypto-2.0.1/README
+--- pycrypto-2.0.1/README.hobble	2005-06-13 20:36:29.000000000 -0400
++++ pycrypto-2.0.1/README	2010-09-21 16:40:45.040804212 -0400
+@@ -2,7 +2,7 @@ Python Cryptography Toolkit (pycrypto)
+ ======================================
+ 
+ This is a collection of both secure hash functions (such as MD5 and SHA),
+-and various encryption algorithms (AES, DES, IDEA, RSA, ElGamal, etc.).  The
++and various encryption algorithms (AES, DES, RSA, ElGamal, etc.).  The
+ package is structured to make adding new modules easy.  I consider this
+ section to be essentially complete, and the software interface will almost
+ certainly not change in an incompatible way in the future; all that remains
+diff -up pycrypto-2.0.1/setup.py.hobble pycrypto-2.0.1/setup.py
+--- pycrypto-2.0.1/setup.py.hobble	2010-09-21 16:40:45.027804013 -0400
++++ pycrypto-2.0.1/setup.py	2010-09-21 16:40:45.041804149 -0400
+@@ -94,13 +94,6 @@ class PCTBuildExt (build_ext):
+             Extension("Crypto.Cipher.DES3",
+                       include_dirs=['src/'],
+                       sources=["src/DES3.c"]),
+-            Extension("Crypto.Cipher.IDEA",
+-                      include_dirs=['src/'],
+-                      sources=["src/IDEA.c"],
+-                      libraries=HTONS_LIBS),
+-            Extension("Crypto.Cipher.RC5",
+-                      include_dirs=['src/'],
+-                      sources=["src/RC5.c"]),
+ 
+             # Stream ciphers
+             Extension("Crypto.Cipher.ARC4",
+diff -up pycrypto-2.0.1/src/block_template.c.hobble pycrypto-2.0.1/src/block_template.c
+--- pycrypto-2.0.1/src/block_template.c.hobble	2010-09-21 16:43:27.066804097 -0400
++++ pycrypto-2.0.1/src/block_template.c	2010-09-21 16:44:07.468680608 -0400
+@@ -82,9 +82,6 @@ static char ALGnew__doc__[] = 
+ "new(key, [mode], [IV]): Return a new " _MODULE_STRING " encryption object.";
+ 
+ static char *kwlist[] = {"key", "mode", "IV", "counter", "segment_size",
+-#ifdef PCT_RC5_MODULE
+-			 "version", "word_size", "rounds",
+-#endif
+ 			 NULL};
+ 
+ static ALGobject *
+@@ -94,20 +91,11 @@ ALGnew(PyObject *self, PyObject *args, P
+ 	ALGobject * new=NULL;
+ 	int keylen, IVlen=0, mode=MODE_ECB, segment_size=0;
+ 	PyObject *counter = NULL;
+-#ifdef PCT_RC5_MODULE
+-	int version = 0x10, word_size = 32, rounds = 16; /*XXX default rounds? */
+-#endif 
+ 	/* Set default values */
+ 	if (!PyArg_ParseTupleAndKeywords(args, kwdict, "s#|is#Oi"
+-#ifdef PCT_RC5_MODULE
+-					 "iii"
+-#endif 
+ 					 , kwlist,
+ 					 &key, &keylen, &mode, &IV, &IVlen,
+ 					 &counter, &segment_size
+-#ifdef PCT_RC5_MODULE
+-					 , &version, &word_size, &rounds
+-#endif
+ 		)) 
+ 	{
+ 		return NULL;
+@@ -162,38 +150,11 @@ ALGnew(PyObject *self, PyObject *args, P
+ 		}
+ 	}
+ 
+-	/* Cipher-specific checks */
+-#ifdef PCT_RC5_MODULE
+-	if (version!=0x10) {
+-		PyErr_Format(PyExc_ValueError,
+-			     "RC5: Bad RC5 algorithm version: %i",
+-			     version);
+-		return NULL;
+-	}
+-	if (word_size!=16 && word_size!=32) {
+-		PyErr_Format(PyExc_ValueError,
+-			     "RC5: Unsupported word size: %i",
+-			     word_size);
+-		return NULL;
+-	}
+-	if (rounds<0 || 255<rounds) {
+-		PyErr_Format(PyExc_ValueError,
+-			     "RC5: rounds must be between 0 and 255, not %i",
+-			     rounds);
+-		return NULL;
+-	}
+-#endif
+-
+ 	/* Copy parameters into object */
+ 	new = newALGobject();
+ 	new->segment_size = segment_size;
+ 	new->counter = counter;
+ 	Py_XINCREF(counter);
+-#ifdef PCT_RC5_MODULE
+-	new->st.version = version;
+-	new->st.word_size = word_size;
+-	new->st.rounds = rounds;
+-#endif
+ 
+ 	block_init(&(new->st), key, keylen);
+ 	if (PyErr_Occurred())
+diff -up pycrypto-2.0.1/test/testdata.py.hobble pycrypto-2.0.1/test/testdata.py
+--- pycrypto-2.0.1/test/testdata.py.hobble	2004-08-01 14:53:31.000000000 -0400
++++ pycrypto-2.0.1/test/testdata.py	2010-09-21 16:40:45.041804149 -0400
+@@ -343,35 +343,6 @@ arc4 = [ ('0000000000000000', '000000000
+          ('0123456789abcdef', '0000000000000000', '7494c2e7104b0879'),
+          ('ef012345', '00000000000000000000', 'd6a141a7ec3c38dfbd61') ]
+ 
+-# Test data for IDEA
+-
+-idea = [('00010002000300040005000600070008', '0000000100020003', '11fbed2b01986de5'),
+-        ('00010002000300040005000600070008', '0102030405060708', '540E5FEA18C2F8B1'),
+-        ('00010002000300040005000600070008', '0019324B647D96AF', '9F0A0AB6E10CED78'),
+-        ('00010002000300040005000600070008', 'F5202D5B9C671B08', 'CF18FD7355E2C5C5'),
+-        ('00010002000300040005000600070008', 'FAE6D2BEAA96826E', '85DF52005608193D'),
+-        ('00010002000300040005000600070008', '0A141E28323C4650', '2F7DE750212FB734'),
+-        ('00010002000300040005000600070008', '050A0F14191E2328', '7B7314925DE59C09'),
+-        ('0005000A000F00140019001E00230028', '0102030405060708', '3EC04780BEFF6E20'),
+-        ('3A984E2000195DB32EE501C8C47CEA60', '0102030405060708', '97BCD8200780DA86'),
+-        ('006400C8012C019001F4025802BC0320', '05320A6414C819FA', '65BE87E7A2538AED'),
+-        ('9D4075C103BC322AFB03E7BE6AB30006', '0808080808080808', 'F5DB1AC45E5EF9F9')
+-       ];
+-
+-# Test data for RC5
+-
+-rc5 = [('10200c1000000000000000000000000000000000', '0000000000000000',
+-        '21A5DBEE154B8F6D'),
+-       ('10200c10915F4619BE41B2516355A50110A9CE91', '21A5DBEE154B8F6D',
+-        'F7C013AC5B2B8952'),
+-       ('10200c10783348E75AEB0F2FD7B169BB8DC16787', 'F7C013AC5B2B8952',
+-        '2F42B3B70369FC92'),
+-       ('10200c10DC49DB1375A5584F6485B413B5F12BAF', '2F42B3B70369FC92',
+-        '65C178B284D197CC'),
+-       ('10200c105269F149D41BA0152497574D7F153125', '65C178B284D197CC',
+-        'EB44E415DA319824')
+-      ]
+-
+ # Test data for ARC2
+ arc2 = [
+ ('5068696c6970476c617373', '0000000000000000', '624fb3e887419e48'),
+diff -up pycrypto-2.0.1/Util/test.py.hobble pycrypto-2.0.1/Util/test.py
+--- pycrypto-2.0.1/Util/test.py.hobble	2004-08-13 18:24:18.000000000 -0400
++++ pycrypto-2.0.1/Util/test.py	2010-09-21 16:40:45.041804149 -0400
+@@ -413,41 +413,3 @@ def TestBlockModules(args=['aes', 'arc2'
+                     ciphertext=obj1.encrypt(plain)
+                     if (ciphertext!=cipher):
+                         die('DES3 CBC mode failed on entry '+`entry`)
+-
+-    if 'idea' in args:
+-        ciph=exerciseBlockCipher('IDEA', verbose)       # IDEA block cipher
+-        if (ciph!=None):
+-                if verbose: print '  Verifying against test suite...'
+-                for entry in testdata.idea:
+-                    key,plain,cipher=entry
+-                    key=binascii.a2b_hex(key)
+-                    plain=binascii.a2b_hex(plain)
+-                    cipher=binascii.a2b_hex(cipher)
+-                    obj=ciph.new(key, ciph.MODE_ECB)
+-                    ciphertext=obj.encrypt(plain)
+-                    if (ciphertext!=cipher):
+-                        die('IDEA failed on entry '+`entry`)
+-
+-    if 'rc5' in args:
+-        # Ronald Rivest's RC5 algorithm
+-        ciph=exerciseBlockCipher('RC5', verbose)
+-        if (ciph!=None):
+-                if verbose: print '  Verifying against test suite...'
+-                for entry in testdata.rc5:
+-                    key,plain,cipher=entry
+-                    key=binascii.a2b_hex(key)
+-                    plain=binascii.a2b_hex(plain)
+-                    cipher=binascii.a2b_hex(cipher)
+-                    obj=ciph.new(key[4:], ciph.MODE_ECB,
+-                                 version =ord(key[0]),
+-                                 word_size=ord(key[1]),
+-                                 rounds  =ord(key[2]) )
+-                    ciphertext=obj.encrypt(plain)
+-                    if (ciphertext!=cipher):
+-                        die('RC5 failed on entry '+`entry`)
+-                        for i in ciphertext:
+-                            if verbose: print hex(ord(i)),
+-                        if verbose: print
+-
+-
+-

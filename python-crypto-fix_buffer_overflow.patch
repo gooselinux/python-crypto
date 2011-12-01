@@ -1,0 +1,24 @@
+diff -Naur pycrypto-2.0.1.org/src/ARC2.c pycrypto-2.0.1/src/ARC2.c
+--- pycrypto-2.0.1.org/src/ARC2.c	2009-02-13 17:08:30.000000000 +0100
++++ pycrypto-2.0.1/src/ARC2.c	2009-02-13 17:08:47.000000000 +0100
+@@ -11,6 +11,7 @@
+  */
+ 
+ #include <string.h>  
++#include "Python.h"
+ 
+ #define MODULE_NAME ARC2
+ #define BLOCK_SIZE 8
+@@ -146,6 +147,12 @@
+ 	   We'll hardwire it to 1024. */
+ #define bits 1024
+ 
++	if ((U32)keylength > sizeof(self->xkey)) {
++		PyErr_SetString(PyExc_ValueError,
++				"ARC2 key length must be less than 128 bytes");
++		return;
++	}
++
+ 	memcpy(self->xkey, key, keylength);
+   
+ 	/* Phase 1: Expand input key to 128 bytes */
